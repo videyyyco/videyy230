@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asupan Videyy</title>
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #0b0b0b;
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    }
+    .video-container {
+      position: relative;
+      width: 100%;
+      max-width: 720px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    video {
+      width: 100%;
+      display: block;
+      background: #000;
+    }
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 16px;
+      z-index: 20;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tap-button {
+      background: #cc0f0f;
+      color: white;
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      padding: 20px 45px;
+      border-radius: 60px;
+      border: 4px solid #fff;
+      box-shadow: 0 0 30px #ff4444;
+      text-transform: uppercase;
+      animation: deny 1.3s infinite ease-in-out;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .tap-button span {
+      display: block;
+      font-size: 1.2rem;
+      font-weight: 400;
+      letter-spacing: normal;
+      opacity: 0.9;
+    }
+
+    @keyframes deny {
+      0% { transform: scale(1); box-shadow: 0 0 15px #ff5555; }
+      50% { transform: scale(1.08); box-shadow: 0 0 40px #ff0000; }
+      100% { transform: scale(1); box-shadow: 0 0 15px #ff5555; }
+    }
+
+    .info-tag {
+      position: absolute;
+      bottom: 12px;
+      right: 16px;
+      color: rgba(255,255,255,0.3);
+      font-size: 13px;
+      z-index: 5;
+      background: rgba(0,0,0,0.3);
+      padding: 4px 12px;
+      border-radius: 40px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="video-container" id="videoContainer">
+  <video id="myVideo" controls playsinline preload="auto">
+    <source src="https://cdn.videy.co/4yIjJuEB1.mp4" type="video/mp4">
+    Your browser does not support video.
+  </video>
+  <div class="info-tag"></div>
+</div>
+
+<script>
+  (function() {
+    // ===== 2 IKLAN =====
+    const IKLAN = [
+      "https://s.shopee.co.id/6fc6vW8K6n",          // iklan #1 sebelum main
+      "https://lt.wetterdefames.com/iZ4nvucmsWlZD5QA0/136673"  // iklan #2 detik ke-5
+    ];
+
+    const video = document.getElementById('myVideo');
+    const container = document.getElementById('videoContainer');
+
+    // ===== STATE YANG MENENTUKAN APAKAH IKLAN SUDAH PERNAH DIKLIK =====
+    // Kunci utama: setelah kedua iklan diklik, TIDAK AKAN PERNAH muncul lagi
+    let iklanPertamaSudahDiklik = false;    // menjadi true setelah iklan pertama dibuka
+    let iklanKeduaSudahDiklik = false;      // menjadi true setelah iklan kedua dibuka
+    
+    // Status lock untuk overlay
+    let lockVideo = false;
+    let overlayElement = null;
+    
+    // Untuk pengecekan detik ke-5
+    let intervalPengecekan = null;
+
+    // ===== FUNGSI CEK APAKAH SEMUA IKLAN SUDAH DIKLIK =====
+    function semuaIklanSelesai() {
+      return iklanPertamaSudahDiklik && iklanKeduaSudahDiklik;
+    }
+
+    // ===== FUNGSI MEMBUAT OVERLAY =====
+    function tampilkanOverlayIklan(linkIklan, pesanTambahan = '') {
+      // JANGAN tampilkan overlay jika semua iklan sudah pernah diklik
+      if (semuaIklanSelesai()) {
+        console.log('Semua iklan sudah pernah diklik, overlay tidak muncul');
+        return false;
+      }
+      
+      // Hapus overlay sebelumnya jika ada
+      hapusOverlay();
+
+      // Pause video
+      video.pause();
+      lockVideo = true;
+
+      // Buat elemen overlay
+      overlayElement = document.createElement('div');
+      overlayElement.className = 'overlay';
+
+      const tombol = document.createElement('div');
+      tombol.className = 'tap-button';
+      tombol.innerHTML = ` TAP TO CONTINUE ${pesanTambahan ? '<span>'+pesanTambahan+'</span>' : ''}`;
+      overlayElement.appendChild(tombol);
+
+      // Event klik overlay
+      overlayElement.addEventListener('click', function() {
+        // Buka link iklan di tab baru
+        window.open(linkIklan, '_blank');
+
+        // Tandai iklan yang sudah diklik BERDASARKAN LINK
+        if (linkIklan === IKLAN[0]) {
+          iklanPertamaSudahDiklik = true;
+          console.log('Iklan pertama diklik, status:', iklanPertamaSudahDiklik);
+        } else if (linkIklan === IKLAN[1]) {
+          iklanKeduaSudahDiklik = true;
+          console.log('Iklan kedua diklik, status:', iklanKeduaSudahDiklik);
+        }
+
+        // Hapus overlay & unlock video
+        hapusOverlay();
+        lockVideo = false;
+
+        // Jika semua iklan sudah selesai, bersihkan interval dan tidak akan muncul lagi
+        if (semuaIklanSelesai()) {
+          console.log('SEMUA IKLAN SELESAI — tidak akan muncul lagi selamanya');
+          if (intervalPengecekan) {
+            clearInterval(intervalPengecekan);
+            intervalPengecekan = null;
+          }
+        }
+
+        // Coba play video (jika tidak dalam keadaan lock)
+        if (video.paused && !lockVideo) {
+          video.play().catch(e => console.log('Perlu interaksi user untuk play'));
+        }
+      });
+
+      container.appendChild(overlayElement);
+      return true;
+    }
+
+    function hapusOverlay() {
+      if (overlayElement && overlayElement.parentNode) {
+        overlayElement.remove();
+        overlayElement = null;
+      }
+    }
+
+    // ===== CEK UNTUK IKLAN KEDUA (detik ke-5) =====
+    function aktifkanDetik5Listener() {
+      // Jangan aktifkan jika semua iklan sudah selesai
+      if (semuaIklanSelesai()) return;
+      
+      // Hapus listener lama
+      if (intervalPengecekan) {
+        clearInterval(intervalPengecekan);
+        intervalPengecekan = null;
+      }
+
+      // Buat interval baru untuk cek currentTime
+      intervalPengecekan = setInterval(() => {
+        // Kondisi muncul iklan kedua:
+        // 1. Iklan pertama SUDAH diklik
+        // 2. Iklan kedua BELUM diklik
+        // 3. Tidak sedang lock
+        // 4. Video sedang main
+        // 5. Waktu sudah >= 5 detik
+        // 6. (Opsional) semua iklan belum selesai
+        if (
+          iklanPertamaSudahDiklik &&      // syarat utama: iklan pertama sudah lewat
+          !iklanKeduaSudahDiklik &&        // iklan kedua belum diklik
+          !lockVideo &&                     // tidak sedang dalam overlay
+          !video.paused &&                   // video sedang berjalan
+          video.currentTime >= 5.0 &&        // sudah mencapai 5 detik
+          !semuaIklanSelesai()               // guard tambahan
+        ) {
+          // Tampilkan overlay iklan kedua
+          tampilkanOverlayIklan(IKLAN[1], 'lanjutkan');
+          // Hentikan interval sampai overlay selesai
+          clearInterval(intervalPengecekan);
+          intervalPengecekan = null;
+        }
+      }, 200); // cek tiap 200ms
+    }
+
+    // ===== RESET SAAT VIDEO MULAI AWAL (TAPI IKLAN TIDAK MUNCUL LAGI JIKA SUDAH PERNAH) =====
+    function cekDanTampilkanIklanPertama() {
+      // JANGAN tampilkan iklan pertama jika semua iklan sudah pernah diklik
+      if (semuaIklanSelesai()) {
+        console.log('Iklan pertama tidak muncul karena semua iklan sudah selesai');
+        return;
+      }
+      
+      // Tampilkan iklan pertama hanya jika BELUM pernah diklik
+      if (!iklanPertamaSudahDiklik && !lockVideo) {
+        tampilkanOverlayIklan(IKLAN[0], 'sebelum main');
+      }
+    }
+
+    // ===== EVENT LISTENERS =====
+    
+    // Saat metadata loaded
+    video.addEventListener('loadedmetadata', function() {
+      cekDanTampilkanIklanPertama();
+    });
+
+    // Event play
+    video.addEventListener('play', function() {
+      // Jika sedang lock, pause video
+      if (lockVideo) {
+        video.pause();
+        return;
+      }
+
+      // Jika iklan pertama belum diklik, tahan dengan overlay
+      if (!iklanPertamaSudahDiklik && !semuaIklanSelesai()) {
+        video.pause();
+        tampilkanOverlayIklan(IKLAN[0], 'klik untuk main');
+        return;
+      }
+
+      // Jika iklan pertama sudah diklik, tapi iklan kedua belum, aktifkan listener detik ke-5
+      if (iklanPertamaSudahDiklik && !iklanKeduaSudahDiklik && !semuaIklanSelesai()) {
+        aktifkanDetik5Listener();
+      }
+
+      // Jika semua iklan sudah selesai, tidak melakukan apapun (video normal)
+    });
+
+    // Event pause
+    video.addEventListener('pause', function() {
+      // Jangan bersihkan interval jika pause disebabkan oleh lock
+      if (lockVideo) return;
+      
+      // Hentikan pengecekan saat video dijeda user
+      if (intervalPengecekan) {
+        clearInterval(intervalPengecekan);
+        intervalPengecekan = null;
+      }
+    });
+
+    // Event seeking (jika user menggeser ke awal)
+    video.addEventListener('seeking', function() {
+      // Jika user kembali ke awal (currentTime mendekati 0)
+      if (video.currentTime < 0.5) {
+        // Hanya tampilkan iklan pertama jika BELUM pernah diklik dan semua iklan belum selesai
+        if (!iklanPertamaSudahDiklik && !semuaIklanSelesai() && !lockVideo) {
+          // Hapus overlay yang mungkin ada
+          hapusOverlay();
+          // Tampilkan iklan pertama lagi
+          tampilkanOverlayIklan(IKLAN[0], 'mulai dari awal');
+        }
+        
+        // Jika iklan pertama sudah pernah diklik, tapi iklan kedua belum, 
+        // dan user mundur ke awal, kita harus mengatur ulang listener detik ke-5
+        if (iklanPertamaSudahDiklik && !iklanKeduaSudahDiklik && !semuaIklanSelesai()) {
+          // Matikan interval lama
+          if (intervalPengecekan) {
+            clearInterval(intervalPengecekan);
+            intervalPengecekan = null;
+          }
+          // Nanti saat play akan diaktifkan lagi
+        }
+      }
+    });
+
+    // Event ended
+    video.addEventListener('ended', function() {
+      hapusOverlay();
+      lockVideo = false;
+      if (intervalPengecekan) {
+        clearInterval(intervalPengecekan);
+        intervalPengecekan = null;
+      }
+      // Tidak reset status iklan - karena status iklan PERMANEN setelah diklik
+    });
+
+    // Proteksi play saat lock
+    video.addEventListener('play', function(e) {
+      if (lockVideo) {
+        e.preventDefault();
+        video.pause();
+      }
+    }, { once: false });
+
+    // Interval pengaman (guard) untuk memastikan aturan "tidak muncul lagi" terpenuhi
+    setInterval(() => {
+      // Guard 1: Jika semua iklan sudah selesai, pastikan tidak ada overlay dan interval mati
+      if (semuaIklanSelesai()) {
+        if (overlayElement) hapusOverlay();
+        if (intervalPengecekan) {
+          clearInterval(intervalPengecekan);
+          intervalPengecekan = null;
+        }
+        lockVideo = false;
+        return;
+      }
+
+      // Guard 2: Jika iklan pertama belum diklik dan video tiba-tiba play tanpa overlay
+      if (!iklanPertamaSudahDiklik && !video.paused && !lockVideo && !semuaIklanSelesai()) {
+        video.pause();
+        tampilkanOverlayIklan(IKLAN[0], 'wajib tap');
+      }
+
+      // Guard 3: Jika iklan pertama sudah, iklan kedua belum, dan video lewat 5 detik tanpa overlay
+      if (iklanPertamaSudahDiklik && !iklanKeduaSudahDiklik && !lockVideo && 
+          video.currentTime >= 5.0 && !video.paused && !semuaIklanSelesai()) {
+        tampilkanOverlayIklan(IKLAN[1], 'lanjut');
+        if (intervalPengecekan) clearInterval(intervalPengecekan);
+      }
+    }, 500);
+
+    // Bersihkan interval saat page unload
+    window.addEventListener('beforeunload', function() {
+      if (intervalPengecekan) clearInterval(intervalPengecekan);
+    });
+
+    // Inisialisasi awal jika video sudah siap
+    if (video.readyState >= 1) {
+      cekDanTampilkanIklanPertama();
+    }
+  })();
+</script>
+
+</body>
+</html>
